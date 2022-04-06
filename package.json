@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "get-pixel-promise": "^1.0.3",
     "get-pixels": "^3.3.3",
     "node-schedule": "^2.1.0",
     "puppeteer": "^13.5.1",

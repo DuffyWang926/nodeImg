@@ -1,5 +1,6 @@
 var log = console.log
-let a = { a: [1],next:a}
+let a = { a: [1]}
+a.next = a
 let objList = []
 
 function cloneDeep (obj){

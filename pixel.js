@@ -19,16 +19,6 @@ async function handleImg(path){
        let res = await getPixelPromise(path)
        const pixels = res
        if(res.data){
-            let compareList = (a,b) =>{
-                let aFlag = Math.abs( a[0]-b[0]) < 15
-                let bFlag = Math.abs( a[1]-b[1]) < 15
-                let cFlag = Math.abs( a[2]-b[2]) < 15
-                if(aFlag && bFlag && cFlag){
-                    return true
-                }else{
-                    return false
-                }
-            }
             let { shape } = pixels
             console.log('shape', shape)
             let len = 0
@@ -55,22 +45,113 @@ async function handleImg(path){
 
                     }else{
                         let isPush = false
-                        debugger
+                        // debugger
                         for(let m = 0, lenm = repleatObjList.length; m < lenm; m ++){
                             let { sum } = repleatObjList[m]
-                            let init = repleatObjList[m].list
-                            flag = compareList(init,pList)
+                            let flag = false
+                            //比较色值，判断坐标是否连续
+                            let locationLimit = repleatObjList[m].locationLimit
+                            let listInit = repleatObjList[m].list
+                            let locationListInit = repleatObjList[m].locationList
+                            let location = [i,j]
+                            let locationLimitNext = {}
+                            let colorGap = 15
+                            let aFlag = Math.abs( listInit[0]-pList[0]) < colorGap 
+                            let bFlag = Math.abs( listInit[1]-pList[1]) < colorGap
+                            let cFlag = Math.abs( listInit[2]-pList[2]) < colorGap
+                            let colorFlag = aFlag && bFlag && cFlag
+                            let locationGap = 10
+                            if(colorFlag){
+                                let { 
+                                        minX,
+                                        maxX,
+                                        minY,
+                                        maxY
+                                    } = locationLimit
+                                if( minX === -1){
+                                    flag = true
+                                    locationLimitNext = {
+                                        minX:i,
+                                        maxX:i,
+                                        minY:j,
+                                        maxY:j
+                                    }
+
+                                }else{
+                                    let flagX = false
+                                    let flagY = false
+                                    if(i <= minX){
+                                        if((minX - i) < locationGap){
+                                            minX = i
+                                            flagX = true
+                                        }
+                                    }else if( i >= maxX){
+                                        if((i - maxX) < locationGap){
+                                            maxX = i
+                                            flagX = true
+                                        }
+                                    }else{
+                                        flagX = true
+                                    }
+                                    if(j <= minY){
+                                        if((minY - j) < locationGap){
+                                            minY = j
+                                            flagY = true
+                                        }
+                                    }else if( j >= maxY){
+                                        if((j - maxY) < locationGap){
+                                            maxY = j
+                                            flagY = true
+                                        }
+                                    }else{
+                                        flagY = true
+                                    }
+                                    if(flagX && flagY){
+                                        flag = true
+                                        locationLimitNext = {
+                                            minX,
+                                            maxX,
+                                            minY,
+                                            maxY
+                                        }
+
+                                    }
+
+                                }
+                                
+
+                            }
+                            
                             if(flag){
+                                let listLast = repleatObjList[m].list
+                                let listNext = []
+                                for(let i = 0,len = listLast.length; i< len; i++){
+                                    let adverage = null 
+                                    adverage = Math.round((listLast[i] + pList[i])/2)
+                                    listNext.push(adverage)
+                                }
                                 repleatObjList[m].sum = +sum + 1
                                 repleatObjList[m].locationList.push([i,j])
+                                // repleatObjList[m].colorList.push(pList)
+                                repleatObjList[m].locationLimit = locationLimitNext
+                                repleatObjList[m].list = listNext
+
                                 isPush = true
                             }
                         }
                         if(!isPush){
                             let res = {
                                 list:pList,
+                                colorList:[pList],
                                 sum:0,
                                 locationList:[[i,j]],
+                                locationLimit:{
+                                    minX:-1,
+                                    maxX:-1,
+                                    minY:-1,
+                                    maxY:-1
+                                }
+                                
                             }
                             repleatObjList.push(res)
 
@@ -87,86 +168,89 @@ async function handleImg(path){
             repleatObjList.sort( (a,b) =>{
                 return  b.sum - a.sum
             })
+            // console.log('result',result)
+            // console.log('repleatObjList[0]',repleatObjList[0])
+            // console.log('repleatObjList[1]',repleatObjList[1])
+            // console.log('repleatObjList[2]',repleatObjList[2])
             let goalLocation = []
             let goalLocationInit = []
-            repleatObjList.forEach( v =>{
+            let goalGap = 25
+            debugger
+            repleatObjList.forEach( (v,i) =>{
                 let { list } = v
-                let flagA = Math.abs( list[0] - 88) < 50
-                let flagB = Math.abs( list[1] - 51) < 50
-                let flagC = Math.abs( list[2] - 34) < 50
+                let flagA = Math.abs( list[0] - 88) < goalGap
+                let flagB = Math.abs( list[1] - 51) < goalGap
+                let flagC = Math.abs( list[2] - 34) < goalGap
                 if(flagA && flagB && flagC){
-                    // console.log('v',v)
                     goalLocationInit.push(v)
                 }
             })
-            if(goalLocationInit.length > 0 ){
-                goalLocationInit.sort( (a,b) =>{
-                    return b.sum - a.sum
-                })
-                goalLocation = goalLocationInit[0].locationList
+            debugger
+            console.log('goalLocationInit',goalLocationInit[0].locationList)
+            console.log('goalLocationInit',goalLocationInit[0].list)
+            console.log('goalLocationInit',goalLocationInit[1].locationList)
+            console.log('goalLocationInit',goalLocationInit[1].list)
+            console.log('goalLocationInit',goalLocationInit[2].locationList)
+            console.log('goalLocationInit',goalLocationInit[2].list)
+            // if(goalLocationInit.length > 0 ){
+            //     goalLocationInit.sort( (a,b) =>{
+            //         return b.sum - a.sum
+            //     })
+            //     goalLocation = goalLocationInit[0].locationList
     
-                // console.log('result',result)
-                // console.log('repleatObjList[0]',repleatObjList[0])
-                // console.log('repleatObjList[1]',repleatObjList[1])
-                // console.log('repleatObjList[2]',repleatObjList[2])
-                console.log('goalLocation',goalLocation)
+                
+            //     console.log('goalLocation',goalLocation)
                 
                 
-                goalLocation.forEach( v =>{
-                    let x = v[0]
-                    let y = v[1]
-                    if(!minX){
-                        minX = x
-                    }else if( x < minX ){
-                        minX = x
-                    }
-                    if(!maxY){
-                        maxY = y
-                    }else if( y > maxY ){
-                        maxY = y
-                    }
-                })
+            //     goalLocation.forEach( v =>{
+            //         let x = v[0]
+            //         let y = v[1]
+            //         if(!minX){
+            //             minX = x
+            //         }else if( x < minX ){
+            //             minX = x
+            //         }
+            //         if(!maxY){
+            //             maxY = y
+            //         }else if( y > maxY ){
+            //             maxY = y
+            //         }
+            //     })
                 
-                goalLocation.forEach( v =>{
-                    let x = v[0]
-                    let y = v[1]
-                    if( x - minX < 50){
-                        if(!minY){
-                            minY = y
-                        }else if( y < minY){
-                            minY = y
-                        }
-                    }
-                    if( maxY - y < 50){
-                        if(!maxX){
-                            maxX = x
-                        }else if( x > maxX){
-                            maxX = x
-                        }
-                    }
-                })
-                console.log('min', minX, maxX, minY, maxY)
-                let goalRes = {}
-                goalLocation.forEach( v =>{
-                    let val = v[0]
-                    let res = []
-                    if(!goalRes[val]){
-                        res.push(v[1])
-                        goalRes[val] = res
-                    }else{
-                        res = goalRes[val]
-                        res.push(v[1])
-                        goalRes[val] = res
-                    }
-                })
-                // for(let i in goalRes){
-                //     let list = goalRes[i]
-                //     list.sort( (a,b) =>{
-                //         return a -b
-                //     })
-                //     console.log('goalRes',i,list)
-                // }
-            }
+            //     goalLocation.forEach( v =>{
+            //         let x = v[0]
+            //         let y = v[1]
+            //         if( x - minX < 50){
+            //             if(!minY){
+            //                 minY = y
+            //             }else if( y < minY){
+            //                 minY = y
+            //             }
+            //         }
+            //         if( maxY - y < 50){
+            //             if(!maxX){
+            //                 maxX = x
+            //             }else if( x > maxX){
+            //                 maxX = x
+            //             }
+            //         }
+            //     })
+            //     console.log('min', minX, maxX, minY, maxY)
+            //     let goalRes = {}
+            //     goalLocation.forEach( v =>{
+            //         let val = v[0]
+            //         let res = []
+            //         if(!goalRes[val]){
+            //             res.push(v[1])
+            //             goalRes[val] = res
+            //         }else{
+            //             res = goalRes[val]
+            //             res.push(v[1])
+            //             goalRes[val] = res
+            //         }
+            //     })
+                
+            // }
             
             let res = {
                 width,
@@ -189,9 +273,9 @@ async function test(){
     let path = './down.png'
     let pathKey = './downKey.png'
     let result =  await handleImg(path)
-    let resultKey =  await handleImg(pathKey)
+    // let resultKey =  await handleImg(pathKey)
     console.log('handle result', result)
-    console.log('handle resultKey', resultKey)
+    // console.log('handle resultKey', resultKey)
 }
 test()
 

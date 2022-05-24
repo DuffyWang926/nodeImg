@@ -55,9 +55,10 @@ async function handleImg(path){
                 let resultY = result[i]
                 // while( j < lenj){
                 while( j < 15){
+                    console.log('i,j',i,j)
                     let pList = resultY[j]
                     let colorGap = 15
-                    debugger
+                    // debugger
                     let repleatObjListLen = repleatObjList.length
                     if(repleatObjListLen == 0){
                         let res = {
@@ -77,7 +78,16 @@ async function handleImg(path){
                                 topLeftList:[[i,j]],
                                 leftKList:[],
                                 footLeftList:[[i,j]],
-                                downIndex:0
+                                rightKList:[],
+                                footRightList:[],
+                                indexList:[0,-1,-1,-1],//down right up left
+                                directionFlag:{
+                                    isDown:true,
+                                    isRight:false,
+                                    isLeft:false,
+                                    isUp:false,
+                                    fromType:null, // 0 down 1 right 2 up 3 left
+                                }
                             }
                         }
                         repleatObjList.push(res)
@@ -90,33 +100,51 @@ async function handleImg(path){
                             
                             let colorFlag = compareColor(list,pList,colorGap)
                             if(colorFlag){
-                                let { 
-                                    minX,
-                                    maxX,
-                                    minY,
-                                    maxY,
-                                    topK,
-                                    leftK,
-                                    footK,
-                                    rightK,
-                                    topLeft,
-                                    footLeft,
-                                    footRight,
-                                    topRight,
-                                    topLeftList,
-                                    leftKList,
-                                    footLeftList,
-                                    downIndex
-                                } = locationLimit
+                                
                                 let addFlag = true
+                                //判断方向
+                                let { directionFlag, indexList, footLeftList, footRightList  } = locationLimit
+                                const { 
+                                    isDown,
+                                    isRight,
+                                    isLeft,
+                                    isUp,
+                                    fromType
+                                } = directionFlag || {}
+                                
+                                if(isDown){
+                                    down(locationLimit, fromType)
+                                }else if(isRight){
+                                    right(locationLimit, fromType)
+                                }else if(isLeft){
+                                    left(locationLimit, fromType)
+                                }else if(isUp){
+                                    up(locationLimit, fromType)
+                                }
+                                
+
                                 //计算k值
+                                let locationLimitNext = {}
                                 
-                                
-                                function down(locationLimit){
-                                    let { topLeftList, leftKList, footLeftList, downIndex} = locationLimit
-                                    let topLeft = topLeftList[downIndex]
-                                    let leftK = leftKList[downIndex]
-                                    
+                                function down(locationLimit, fromType){
+                                    let { topLeftList, leftKList, footLeftList, indexList} = locationLimit
+                                    // debugger
+                                    let lastIndex = -1
+                                    let footLeft = []
+                                    if(fromType == 0){
+                                        lastIndex = indexList[0]
+                                        footLeft = footLeftList[lastIndex]
+                                    }else if(fromType == 1){
+                                        lastIndex = indexList[1]
+                                        footLeft = footRightList[lastIndex]
+                                    }
+                                    let rightIndex = indexList[1]
+                                    debugger
+                                    let rightK = rightKList[rightIndex]
+                                    let changeIndex = indexList[0]
+                                    let topLeft = topLeftList[changeIndex]
+                                    let leftK = leftKList[changeIndex]
+                                    //计算相对topLeft的k
                                     let topLeftInitX = topLeft[0]
                                     let topLeftInitY = topLeft[1]
                                     let tempLeftK = null
@@ -125,47 +153,122 @@ async function handleImg(path){
                                     }else{
                                         tempLeftK = 1000
                                     }
+                                    //根据k的比较，判断下一步
                                     if( leftK === undefined ){
-                                        leftKList[downIndex] = tempLeftK
+                                        leftKList[changeIndex] = tempLeftK
                                     }else if(tempLeftK === leftK ){
-                                        footLeftList[downIndex] = [i,j]
+                                        footLeftList[changeIndex] = [i,j]
                                     }else if(tempLeftK < leftK){
-                                        downIndex += 1
-                                        locationLimit.downIndex = downIndex
-                                        left(locationLimit)
+                                        let rightIndex = indexList[1]
+                                        rightIndex += 1
+                                        indexList[1] = rightIndex
+                                        locationLimit.indexList = indexList
+                                        directionFlag.isDown = false
+                                        directionFlag.isRight = true
+                                        directionFlag.fromType = 0
+                                        locationLimit.directionFlag = directionFlag
+                                        
+                                        right(locationLimit, 0)
                                     }else if(tempLeftK > leftK){
-                                        downIndex += 1
-                                        locationLimit.downIndex = downIndex
-                                        right(locationLimit)
+                                        let leftIndex = indexList[3]
+                                        leftIndex += 1
+                                        indexList[3] = leftIndex
+                                        locationLimit.indexList = indexList
+                                        directionFlag.isDown = false
+                                        directionFlag.isLeft = true
+                                        directionFlag.fromType = 0
+                                        locationLimit.directionFlag = directionFlag
+                                        
+                                        left(locationLimit)
                                     }
                                 }
-                                if( leftK === null ){
-                                    leftK = tempLeftK
-                                }else if(tempLeftK === leftK ){
-                                    footLeft = [i,j]
-                                }else if(tempLeftK < leftK){
+                                function right(locationLimit, fromType){
+                                    let {  rightKList, footRightList, indexList} = locationLimit
+                                    let lastIndex = -1
+                                    let footLeft = []
+                                    if(fromType == 0){
+                                        lastIndex = indexList[0]
+                                        footLeft = footLeftList[lastIndex]
+                                    }else if(fromType == 1){
+                                        lastIndex = indexList[1]
+                                        footLeft = footRightList[lastIndex]
+                                    }
+                                    let rightIndex = indexList[1]
+                                    debugger
+                                    let rightK = rightKList[rightIndex]
+
                                     let footLeftInitX = footLeft[0]
                                     let footLeftInitY = footLeft[1]
-                                    debugger
-                                    let tempFootK = ((j - footLeftInitY)/(i - footLeftInitX)).toFixed(2)
-                                    if(footK === null){
-                                        footK = tempFootK
-                                    }else if(tempFootK == footK ){
-                                        footRight = [i,j]
-                                    }else if(tempFootK < footK ){
-                                        let footRightInitX = footRight[0]
-                                        let footRightInitY = footRight[1]
-                                        debugger
-                                        let tempRightK = ((j - footRightInitY)/(i - footRightInitX)).toFixed(2)
-                                        if(rightK === null){
-                                            rightK = tempRightK
-                                        }else if(tempRightK === rightK){
-                                            topRight = [i,j]
-                                        }
-                                    }else if(tempFootK > footK ){
-
+                                    let tempRightK = ((j - footLeftInitY)/(i - footLeftInitX)).toFixed(2)
+                                    if(rightK === undefined){
+                                        rightKList[rightIndex] = tempRightK
+                                    }else if(tempRightK == rightK ){
+                                        footRightList[rightIndex] = [i,j]
+                                    }else if(tempRightK < rightK ){
+                                        let upIndex = indexList[2]
+                                        upIndex += 1
+                                        indexList[2] = upIndex
+                                        locationLimit.indexList = indexList
+                                        directionFlag.isRight = false
+                                        directionFlag.isUp = true
+                                        directionFlag.fromType = 1
+                                        locationLimit.directionFlag = directionFlag
+                                        up(locationLimit,1)
+                                    }else if(tempRightK > rightK ){
+                                        let downIndex = indexList[0]
+                                        downIndex += 1
+                                        indexList[0] = downIndex
+                                        locationLimit.indexList = indexList
+                                        directionFlag.isRight = false
+                                        directionFlag.isDown = true
+                                        directionFlag.fromType = 1
+                                        locationLimit.directionFlag = directionFlag
+                                        down(locationLimit,1)
                                     }
                                 }
+                                function up(locationLimit, fromType){
+
+                                    let {  rightKList, footRightList, indexList} = locationLimit
+                                    let lastIndex = -1
+                                    let footRight = []
+                                    if(fromType == 0){
+                                        lastIndex = indexList[0]
+                                        footRight = footLeftList[lastIndex]
+                                    }else if(fromType == 1){
+                                        lastIndex = indexList[1]
+                                        footRight = footRightList[lastIndex]
+                                    }
+                                    let rightIndex = indexList[1]
+                                    debugger
+                                    let rightK = rightKList[rightIndex]
+
+                                    let footLeftInitX = footLeft[0]
+                                    let footLeftInitY = footLeft[1]
+                                    let tempRightK = ((j - footLeftInitY)/(i - footLeftInitX)).toFixed(2)
+                                    if(rightK === undefined){
+                                        rightKList[rightIndex] = tempRightK
+                                    }else if(tempRightK == rightK ){
+                                        footRightList[rightIndex] = [i,j]
+                                    }else if(tempRightK < rightK ){
+                                        changeIndex += 1
+                                        locationLimit.changeIndex = changeIndex
+                                        let upIndex = indexList[2]
+                                        upIndex += 1
+                                        indexList[2] = upIndex
+                                        locationLimit.indexList = indexList
+                                        directionFlag.isRight = false
+                                        directionFlag.isUp = true
+                                        directionFlag.fromType = 1
+                                        locationLimit.directionFlag = directionFlag
+                                        up(locationLimit)
+                                    }else if(tempRightK > rightK ){
+                                        changeIndex += 1
+                                        locationLimit.changeIndex = changeIndex
+                                        // down(locationLimit)
+                                    }
+                                }
+
+                                
                                 
 
                                 // if( topK === null ){
@@ -177,20 +280,7 @@ async function handleImg(path){
                                 //     }
                                 // }
                                 if(addFlag){
-                                    let locationLimitNext = {
-                                        minX,
-                                        maxX,
-                                        minY,
-                                        maxY,
-                                        topK,
-                                        leftK,
-                                        footK,
-                                        rightK,
-                                        topLeft,
-                                        footLeft,
-                                        footRight,
-                                        topRight
-                                    }
+                                    locationLimitNext = locationLimit
                                     let listLast = repleatObjList[m].list
                                     let listNext = []
                                     for(let i = 0,len = listLast.length; i< len; i++){
@@ -212,11 +302,11 @@ async function handleImg(path){
                         let colorFlagNext = compareColor(pList,pListNext,colorGap)
                         
                         if(colorFlagNext){
-                            debugger
+                            // debugger
                             lastJ = j
                             j++
                         }else{
-                            debugger
+                            // debugger
                             let resultYNext = result[i+1]
                             let pListNext = resultYNext[j]
                             colorFlagNext = compareColor(pList,pListNext,colorGap)
